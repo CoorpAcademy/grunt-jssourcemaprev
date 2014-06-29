@@ -28,16 +28,19 @@ module.exports = function(grunt) {
 
     self.filesSrc.forEach(function (file) {
       var js = grunt.file.read(file);
-      var re = /^\/\/[@|#]\ssourceMappingURL\=([\/a-zA-Z0-9_\-\.]+)$/gm;
+      var isCSS = path.extname(file) === '.css';
+      var re = /^\/[\/|*][@|#]\ssourceMappingURL\=([\/a-zA-Z0-9_\-\.]+)/gm;
       var match = js.match(re);
       if (!match) {
         return;
       }
 
+
+
       // Find the sourceMappingUrl based on match.
       var mapUrl = match[0].split('=')[1];
       var mapFile = path.join(path.dirname(file), mapUrl);
-      var newMapName = path.basename(file, path.extname(file)) + '.map.json';
+      var newMapName = path.basename(file, path.extname(file)) + '.map';
       var newMapFile = path.join(path.dirname(mapFile), newMapName);
       
       // 1. Rename the source map file.
@@ -49,7 +52,7 @@ module.exports = function(grunt) {
 
       // 2. Update sourceMappingUrl in the js file.
       var newMapRelativeUrl = path.join(path.relative(path.dirname(file), path.dirname(newMapFile)), path.basename(newMapFile));
-      var newJs = js.replace(re, '//@ sourceMappingURL=' + newMapRelativeUrl);
+      var newJs = js.replace(re, (isCSS ?  '/*' : '//') + '# sourceMappingURL=' + newMapRelativeUrl);
       if (newJs !== js) {
         grunt.file.write(file, newJs);
         grunt.log.writeln('✔ '.green + file + (' sourceMappingURL changed to point to ').grey + newMapFile);
