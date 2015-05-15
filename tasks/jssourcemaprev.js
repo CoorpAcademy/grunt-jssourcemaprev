@@ -21,7 +21,7 @@ module.exports = function(grunt) {
   // 3. The location of the source files - rename their directory to match the source map (revving them)
   // 4. The sourceRoot attribute in the sourcemap itself to point to the moved source files.
   grunt.registerMultiTask('jssourcemaprev', 'Rename a js sourcemap and all related source files.', function() {
-      var self = this,
+    var self = this,
         options = self.options({
           moveSrc: false
         });
@@ -35,14 +35,12 @@ module.exports = function(grunt) {
         return;
       }
 
-
-
       // Find the sourceMappingUrl based on match.
       var mapUrl = match[0].split('=')[1];
       var mapFile = path.join(path.dirname(file), mapUrl);
       var newMapName = path.basename(file, path.extname(file)) + '.map';
       var newMapFile = path.join(path.dirname(mapFile), newMapName);
-      
+
       // 1. Rename the source map file.
       if (mapFile !== newMapFile) {
         grunt.file.copy(mapFile, newMapFile);
@@ -59,6 +57,8 @@ module.exports = function(grunt) {
       }
 
       var sourceMap = grunt.file.readJSON(newMapFile);
+      var saveSourceMapFile = false;
+
       if (sourceMap.sourceRoot) {
         // 3. Move the source files location based on sourceRoot
         var srcPath = path.join(path.dirname(newMapFile), sourceMap.sourceRoot),
@@ -79,8 +79,8 @@ module.exports = function(grunt) {
         if (moved) {
           grunt.log.writeln('✔ '.green + srcPath + (' moved to ').grey + newSrcPath);
           var safeToDeleteSrcPath = (
-            options.moveSrc && 
-            grunt.file.isDir(srcPath) && 
+            options.moveSrc &&
+            grunt.file.isDir(srcPath) &&
             !grunt.file.isPathCwd(srcPath)
           );
           if (safeToDeleteSrcPath) {
@@ -90,8 +90,19 @@ module.exports = function(grunt) {
 
         // 4. Update the sourceRoot attribute in the source map file.
         sourceMap.sourceRoot = path.relative(path.dirname(newMapFile), newSrcPath) + '/';
-        grunt.file.write(newMapFile, JSON.stringify(sourceMap));
+        saveSourceMapFile = true;
         grunt.log.writeln('✔ '.green + newMapFile + (' sourceRoot changed to point to ').grey + newSrcPath);
+      }
+
+      var fileBasename = path.basename(file);
+      if (sourceMap.file && sourceMap.file !== fileBasename) {
+        sourceMap.file = fileBasename;
+        saveSourceMapFile = true;
+        grunt.log.writeln('✔ '.green + newMapFile + (' file field changed to point to ').grey + fileBasename);
+      }
+
+      if (saveSourceMapFile) {
+        grunt.file.write(newMapFile, JSON.stringify(sourceMap));
       }
     });
   });
